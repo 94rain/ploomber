@@ -321,9 +321,11 @@ def upload_zipped_project(response, verbose, run_id):
     with open("project.zip", "rb") as f:
         files = {"file": f}
     try:
+        print("debug files")
         http_response = _requests.post(response["url"],
                                        data=response["fields"],
                                        files=files)
+        print("debug http_response done")
     except Exception as e:
         run_abort(run_id)
         raise ValueError(f"An error happened: {e}")
