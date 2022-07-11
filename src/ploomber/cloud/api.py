@@ -317,12 +317,16 @@ def get_presigned_link(headers):
         return {"Error": err}
 
 
-def upload_zipped_project(response, verbose):
+def upload_zipped_project(response, verbose, run_id):
     with open("project.zip", "rb") as f:
         files = {"file": f}
+    try:
         http_response = _requests.post(response["url"],
                                        data=response["fields"],
                                        files=files)
+    except Exception as e:
+        run_abort(run_id)
+        raise ValueError(f"An error happened: {e}")
 
     if http_response.status_code != 204:
         raise ValueError(f"An error happened: {http_response}")
@@ -375,7 +379,7 @@ def upload_project(force=False,
 
     response = get_presigned_link()
     print("get_presigned_link done")
-    upload_zipped_project(response, verbose)
+    upload_zipped_project(response, verbose, runid)
     print("upload_zipped_project done")
     if verbose:
         click.echo("Starting build...")
