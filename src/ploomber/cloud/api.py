@@ -380,9 +380,9 @@ def upload_project(force=False,
         click.echo("Uploading project...")
 
     response = get_presigned_link()
-    print("get_presigned_link done")
+    click.echo("get_presigned_link done")
     upload_zipped_project(response, verbose, runid)
-    print("upload_zipped_project done")
+    click.echo("upload_zipped_project done")
     if verbose:
         click.echo("Starting build...")
 
