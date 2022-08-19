@@ -137,7 +137,7 @@ def task_class_from_source_str(source_str, lazy_import, reload, product):
             'You can also define functions as [module_name].[function_name]')
 
 
-def task_class_from_spec(task_spec, lazy_import, reload):
+def task_class_from_spec(task_spec, source, lazy_import, reload):
     """
     Returns the class for the TaskSpec, if the spec already has the class
     name (str), it just returns the actual class object with such name,
@@ -154,7 +154,7 @@ def task_class_from_spec(task_spec, lazy_import, reload):
             raise
     else:
         class_ = task_class_from_source_str(
-            task_spec['source'],
+            source,
             lazy_import,
             reload,
             task_spec.get('product'),
@@ -227,31 +227,37 @@ class TaskSpec(MutableMapping):
         source_loader = meta['source_loader']
 
         # initialize required elements
-        self.data['class'] = task_class_from_spec(self.data, lazy_import,
-                                                  reload)
         # preprocess source obj, at this point it will either be a Path if the
         # task requires a file or a callable if it's a PythonCallable task
-        self.data['source'] = _init_source_for_task_class(
-            self.data['source'],
-            self.data['class'],
-            self.project_root,
-            lazy_import,
-            # only make sources absolute paths when not using a source loader
-            # otherwise keep them relative
-            make_absolute=source_loader is None)
 
-        is_path = isinstance(self.data['source'], Path)
+        # always use a list
+        if isinstance(self.data['source'], str):
+            self.data['source'] = [self.data['source']]
+        self.data['class'] = task_class_from_spec(self.data,
+                                                  self.data['source'][0],
+                                                  lazy_import,
+                                                  reload)
+        for i in range(len(self.data['source'])):
 
-        # check if we need to use the source_loader. we don't if the path is
-        # relative because that doesn't make sense with a source_loader, and
-        # this gives the user the ability to load some files that might
-        # not be part of the source loader
-        if source_loader and is_path and not self.data['source'].is_absolute():
-            if lazy_import:
-                self.data['source'] = source_loader.path_to(
-                    self.data['source'])
-            else:
-                self.data['source'] = source_loader[self.data['source']]
+            self.data['source'][i] = _init_source_for_task_class(
+                self.data['source'][i],
+                self.data['class'],
+                self.project_root,
+                lazy_import,
+                # only make sources absolute paths when not using a source loader
+                # otherwise keep them relative
+                make_absolute=source_loader is None)
+            is_path = isinstance(self.data['source'][i], Path)
+
+            # check if we need to use the source_loader. we don't if the path is
+            # relative because that doesn't make sense with a source_loader, and
+            # this gives the user the ability to load some files that might
+            # not be part of the source loader
+            if source_loader and is_path and not self.data['source'][i].is_absolute():
+                if lazy_import:
+                    self.data['source'][i] = source_loader.path_to(self.data['source'][i])
+                else:
+                    self.data['source'][i] = source_loader[self.data['source'][i]]
 
     def validate(self):
         """
